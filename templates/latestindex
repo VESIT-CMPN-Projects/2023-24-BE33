@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion Detector</title>
+    <style>
+        /* Add your CSS styles here */
+        #video-container {
+            width: 640px;
+            height: 480px;
+            margin: 20px auto;
+            position: relative;
+        }
+        #emotion-image {
+            width: 100%;
+            height: 100%;
+        }
+        #emotion-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 5px;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Emotion Detector</h1>
+
+    <div id="video-container">
+        <img id="video-feed" src="{{ url_for('video_feed') }}" alt="Video Feed">
+        <p id="emotion-label"></p>
+    </div>
+
+    <button id="real-time-button">Real-Time Detection</button>
+    <button id="stop-button">Stop Detection</button>
+
+    <p id="overall-emotion"></p>
+
+    <script>
+       // Add your JavaScript code here
+        const video = document.getElementById('video-feed');
+        const emotionLabel = document.getElementById('emotion-label');
+        const overallEmotionLabel = document.getElementById('overall-emotion');
+        const realTimeButton = document.getElementById('real-time-button');
+        const stopButton = document.getElementById('stop-button');
+        let videoStream = null;
+
+        // Function to start real-time video detection
+        async function startRealTimeDetection() {
+            stopDetection(); // Stop any existing detection
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = videoStream;
+            } catch (error) {
+                console.error('Error accessing webcam:', error);
+            }
+        }
+
+        // Function to stop real-time video detection
+        function stopDetection() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+        }
+
+        // Function to send a stop detection request to the server
+        function stopDetectionRequest() {
+            fetch('/stop_detection', {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('Stop Detection Request Sent');
+                    // Fetch and display the overall detected emotion
+                    fetchOverallEmotion();
+                } else {
+                    console.error('Failed to send stop detection request');
+                }
+            })
+            .catch(error => {
+                console.error('Error sending stop detection request:', error);
+            });
+        }
+
+        // Function to fetch and display the overall detected emotion
+        function fetchOverallEmotion() {
+            fetch('/overall_emotion')
+                .then(response => response.json())
+                .then(data => {
+                    const overallEmotion = data.emotion;
+                    overallEmotionLabel.textContent = `Overall Detected Emotion: ${overallEmotion}`;
+                })
+                .catch(error => console.error('Error fetching overall emotion:', error));
+        }
+
+        // Event listeners for buttons
+        realTimeButton.addEventListener('click', startRealTimeDetection);
+        stopButton.addEventListener('click', stopDetectionRequest);
+    </script>
+</body>
+</html>

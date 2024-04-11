@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion Detector</title>
+    <style>
+        #video-container {
+            width: 640px;
+            height: 480px;
+            margin: 20px auto;
+            position: relative;
+        }
+
+        #emotion-image {
+            width: 100%;
+            height: 100%;
+        }
+
+        #emotion-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 5px;
+        }
+
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Emotion Detector</h1>
+    <div id="video-container">
+        <img id="video-feed" src="" alt="Video Feed">
+        <p id="emotion-label"></p>
+    </div>
+    <button id="real-time-button">Real-Time Detection</button>
+    <button id="stop-button">Stop Detection</button>
+    <p>Overall Detected Emotion: <span id="overall-emotion"></span></p>
+
+    <script>
+        const video = document.getElementById('video-feed');
+        const emotionLabel = document.getElementById('emotion-label');
+        const overallEmotionLabel = document.getElementById('overall-emotion');
+        const realTimeButton = document.getElementById('real-time-button');
+        const stopButton = document.getElementById('stop-button');
+
+        let websocket = null;
+
+        // Function to start real-time video detection
+        function startRealTimeDetection() {
+            stopDetection();
+            websocket = new WebSocket('ws://localhost:8000/video_feed');
+
+            websocket.onmessage = function(event) {
+                const imageBlob = new Blob([event.data], { type: 'image/jpeg' });
+                video.src = URL.createObjectURL(imageBlob);
+            };
+
+            websocket.onclose = function() {
+                console.log('WebSocket connection closed');
+            };
+        }
+
+        // Function to stop real-time video detection
+        function stopDetection() {
+            if (websocket) {
+                websocket.close();
+                websocket = null;
+            }
+        }
+
+        // Function to fetch and display the overall detected emotion
+        function fetchOverallEmotion() {
+            fetch('/overall_emotion')
+            .then(response => response.json())
+            .then(data => {
+                const overallEmotion = data.emotion;
+                overallEmotionLabel.textContent = overallEmotion;
+            })
+            .catch(error => console.error('Error fetching overall emotion:', error));
+        }
+
+        // Event listeners for buttons
+        realTimeButton.addEventListener('click', startRealTimeDetection);
+        stopButton.addEventListener('click', stopDetection);
+
+        // Fetch and display the overall detected emotion
+        fetchOverallEmotion();
+    </script>
+</body>
+</html>
